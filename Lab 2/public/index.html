@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Chat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --chat-bg: #1e293b;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --user-msg: #3b82f6;
+      --ai-msg: #334155;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    #chat-container {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      position: relative;
+      background: var(--bg-color);
+    }
+
+    /* Header */
+    #header {
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(10px);
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+
+    .brand svg {
+      width: 24px;
+      height: 24px;
+      fill: var(--primary);
+    }
+
+    select {
+      background-color: var(--chat-bg);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 8px 12px;
+      border-radius: 8px;
+      outline: none;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    /* Chat Area */
+    #chat-box {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 20px 40px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      scroll-behavior: smooth;
+    }
+
+    /* Scrollbar */
+    #chat-box::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #chat-box::-webkit-scrollbar-thumb {
+      background-color: var(--border);
+      border-radius: 4px;
+    }
+
+    /* Messages */
+    .message-row {
+      display: flex;
+      gap: 15px;
+      opacity: 0;
+      animation: fadeIn 0.3s forwards;
+    }
+
+    .user-row {
+      flex-direction: row-reverse;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 1.2rem;
+    }
+
+    .ai-avatar {
+      background: #10b981;
+    }
+
+    .user-avatar {
+      background: var(--primary);
+    }
+
+    .message-content {
+      max-width: 75%;
+      padding: 12px 18px;
+      border-radius: 18px;
+      line-height: 1.6;
+      font-size: 0.95rem;
+      word-wrap: break-word;
+      position: relative;
+    }
+
+    .user-row .message-content {
+      background: var(--user-msg);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .ai-row .message-content {
+      background: var(--ai-msg);
+      color: #e2e8f0;
+      border-bottom-left-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    .message-content img {
+      max-width: 100%;
+      border-radius: 10px;
+      margin-top: 10px;
+      display: block;
+    }
+
+    .pdf-info {
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 8px;
+      border-radius: 8px;
+      margin-top: 5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Input Area */
+    #input-area {
+      padding: 20px;
+      background: var(--bg-color);
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    #preview-area {
+      display: none;
+      background: var(--chat-bg);
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      width: fit-content;
+      position: relative;
+    }
+
+    #preview-img {
+      height: 60px;
+      border-radius: 6px;
+      display: none;
+    }
+
+    #preview-pdf {
+      font-size: 0.9rem;
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .remove-file {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: #ef4444;
+      color: white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 12px;
+      border: 2px solid var(--bg-color);
+    }
+
+    .input-wrapper {
+      display: flex;
+      align-items: center;
+      background: var(--chat-bg);
+      border-radius: 50px;
+      padding: 6px 15px;
+      border: 1px solid var(--border);
+      transition: border-color 0.2s;
+    }
+
+    .input-wrapper:focus-within {
+      border-color: var(--primary);
+    }
+
+    input[type="text"] {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: white;
+      padding: 10px;
+      outline: none;
+      font-size: 1rem;
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background 0.2s;
+    }
+
+    .icon-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .icon-btn svg {
+      width: 22px;
+      height: 22px;
+      fill: var(--text-muted);
+    }
+
+    .send-btn {
+      background: var(--primary);
+      margin-left: 5px;
+    }
+
+    .send-btn:hover {
+      background: var(--primary-hover);
+    }
+
+    .send-btn svg {
+      fill: white;
+      width: 20px;
+      height: 20px;
+    }
+
+    .send-btn:disabled {
+      background: var(--border);
+      cursor: not-allowed;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="chat-container">
+    <div id="header">
+      <div class="brand">
+        <svg viewBox="0 0 24 24">
+          <path
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" />
+        </svg>
+        <span>AI Assistant</span>
+      </div>
+      <select id="model-select">
+        <option value="openai">GPT-4o Mini</option>
+        <option value="gemini">Gemini Flash</option>
+      </select>
+    </div>
+
+    <div id="chat-box">
+      <div class="message-row ai-row">
+        <div class="avatar ai-avatar">🤖</div>
+        <div class="message-content">Hello! I can help you with text, analyze images, or read PDFs. How can I assist you
+          today?</div>
+      </div>
+    </div>
+
+    <div id="input-area">
+      <div id="preview-area">
+        <div class="remove-file" onclick="clearFile()">✕</div>
+        <img id="preview-img" alt="preview">
+        <div id="preview-pdf">📄 <span id="pdf-name">file.pdf</span></div>
+      </div>
+
+      <div class="input-wrapper">
+        <label for="file-input" class="icon-btn" title="Attach Image or PDF">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5a2.5 2.5 0 0 1 5 0v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5a2.5 2.5 0 0 0 5 0V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z" />
+          </svg>
+        </label>
+        <input type="file" id="file-input" accept="image/*, application/pdf" onchange="handleFileSelect()">
+
+        <input type="text" id="user-input" placeholder="Message AI..." autocomplete="off">
+
+        <button onclick="sendMessage()" id="send-btn" class="icon-btn send-btn">
+          <svg viewBox="0 0 24 24">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let conversationHistory = [];
+    let currentFile = null;
+    let fileType = null;
+
+    const chatBox = document.getElementById('chat-box');
+    const userInput = document.getElementById('user-input');
+    const fileInput = document.getElementById('file-input');
+    const previewArea = document.getElementById('preview-area');
+    const previewImg = document.getElementById('preview-img');
+    const previewPdf = document.getElementById('preview-pdf');
+    const pdfName = document.getElementById('pdf-name');
+    const sendBtn = document.getElementById('send-btn');
+    const modelSelect = document.getElementById('model-select');
+
+    const toBase64 = file => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+    });
+
+    async function handleFileSelect() {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      currentFile = file;
+      previewArea.style.display = 'block';
+
+      if (file.type.startsWith('image/')) {
+        fileType = 'image';
+        const base64 = await toBase64(file);
+        previewImg.src = base64;
+        previewImg.style.display = 'block';
+        previewPdf.style.display = 'none';
+      } else if (file.type === 'application/pdf') {
+        fileType = 'pdf';
+        pdfName.innerText = file.name;
+        previewPdf.style.display = 'flex';
+        previewImg.style.display = 'none';
+      }
+    }
+
+    function clearFile() {
+      fileInput.value = '';
+      currentFile = null;
+      fileType = null;
+      previewArea.style.display = 'none';
+    }
+
+    function appendMessage(role, text, attachment = null) {
+      const row = document.createElement('div');
+      row.className = `message-row ${role === 'user' ? 'user-row' : 'ai-row'}`;
+
+      const avatar = document.createElement('div');
+      avatar.className = `avatar ${role === 'user' ? 'user-avatar' : 'ai-avatar'}`;
+      avatar.innerText = role === 'user' ? '👤' : '🤖';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'message-content';
+
+      let contentHtml = `<div>${text || ''}</div>`;
+
+      if (attachment) {
+        if (attachment.type === 'image') {
+          contentHtml += `<img src="${attachment.data}" alt="User Image">`;
+        } else if (attachment.type === 'pdf') {
+          contentHtml += `<div class="pdf-info">📄 PDF Attached: ${attachment.name}</div>`;
+        }
+      }
+
+      bubble.innerHTML = contentHtml;
+      row.appendChild(avatar);
+      row.appendChild(bubble);
+      chatBox.appendChild(row);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const text = userInput.value.trim();
+      if (!text && !currentFile) return;
+
+      const provider = modelSelect.value;
+      const fileSnapshot = currentFile;
+      const typeSnapshot = fileType;
+
+      let displayAttachment = null;
+      if (typeSnapshot === 'image') {
+        displayAttachment = { type: 'image', data: await toBase64(fileSnapshot) };
+      } else if (typeSnapshot === 'pdf') {
+        displayAttachment = { type: 'pdf', name: fileSnapshot.name };
+      }
+
+      appendMessage('user', text, displayAttachment);
+
+      userInput.value = '';
+      clearFile();
+      sendBtn.disabled = true;
+
+      let messageContent = text;
+
+      try {
+        if (typeSnapshot === 'pdf') {
+          appendMessage('assistant', '⏳ Analyzing PDF...');
+          const formData = new FormData();
+          formData.append('file', fileSnapshot);
+
+          const uploadRes = await fetch('/api/upload-pdf', { method: 'POST', body: formData });
+          const uploadData = await uploadRes.json();
+
+          chatBox.lastChild.remove();
+
+          if (uploadData.text) {
+            messageContent = `Context from PDF (${fileSnapshot.name}):\n${uploadData.text}\n\nUser Question: ${text}`;
+          }
+        }
+        else if (typeSnapshot === 'image') {
+          const base64 = await toBase64(fileSnapshot);
+          messageContent = [
+            { type: "text", text: text || "Analyze this image" },
+            { type: "image_url", image_url: { url: base64 } }
+          ];
+        }
+
+        conversationHistory.push({ role: "user", content: messageContent });
+
+        const chatRes = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: conversationHistory,
+            provider: provider
+          })
+        });
+
+        const chatData = await chatRes.json();
+
+        if (chatData.error) {
+          appendMessage('assistant', 'Error: ' + chatData.error);
+        } else {
+          appendMessage('assistant', chatData.content);
+          conversationHistory.push({ role: "assistant", content: chatData.content });
+        }
+
+      } catch (error) {
+        console.error(error);
+        appendMessage('assistant', 'Something went wrong.');
+      } finally {
+        sendBtn.disabled = false;
+      }
+    }
+
+    userInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+  </script>
+
+</body>
+
+</html>
